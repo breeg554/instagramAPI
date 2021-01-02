@@ -1,0 +1,4 @@
+name: instagramApp
+pass: eAqwoBVdLXqWO8Au
+
+link: mongodb+srv://instagramApp:eAqwoBVdLXqWO8Au@cluster0.mhev9.mongodb.net/<dbname>?retryWrites=true&w=majority
