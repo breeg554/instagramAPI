@@ -3,10 +3,19 @@ const Image = require("../models/image");
 const fs = require("fs");
 
 async function get(req, res) {
-  await Image.find({ creatorID: req.userID }, function (err, image) {
-    if (err) res.status(400).json("Something went wrong");
-    res.status(200).json(image);
-  });
+  const { id } = req.params;
+
+  const limit = parseInt(req.query.limit || 0);
+  const skip = parseInt(req.query.skip || 0);
+
+  await Image.find({ creatorID: id })
+    .skip(skip)
+    .limit(limit)
+    .sort("-createdAt")
+    .exec(function (err, image) {
+      if (err) res.status(400).json("Something went wrong");
+      res.status(200).json(image);
+    });
 }
 module.exports.getImages = get;
 
@@ -64,3 +73,25 @@ function destroy(req, res) {
   });
 }
 module.exports.deleteImage = destroy;
+
+function like(req, res, next) {
+  Image.findById(req.params.id, (err, image) => {
+    if (err) return res.status(400).json("Something went wrong");
+    if (image === null) return res.status(404).json("Image not found");
+
+    const isUserLike = image.likes.findIndex(
+      (user) => user._id.toString() === req.userID.toString()
+    );
+
+    if (isUserLike > -1) {
+      const tmpLikes = image.likes.filter(
+        (user) => user._id.toString() !== req.userID.toString()
+      );
+      image.likes = tmpLikes;
+    } else image.likes.push(req.userID);
+    image.save();
+
+    return res.status(200).json(image);
+  }).populate("author", "name avatar");
+}
+module.exports.toggleLike = like;

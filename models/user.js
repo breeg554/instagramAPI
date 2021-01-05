@@ -8,7 +8,13 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     date: { type: Date, default: Date.now },
+    avatar: { type: String, default: null },
     followingUsers: [
+      {
+        user_id: Schema.Types.ObjectId,
+      },
+    ],
+    followers: [
       {
         user_id: Schema.Types.ObjectId,
       },
@@ -26,15 +32,21 @@ userSchema.virtual("images", {
   foreignField: "creatorID",
 });
 
-userSchema.methods.getFeed = function (callback) {
+userSchema.methods.getFeed = function (limit = 0, skip = 0, callback) {
   const followingUsersIDs = this.followingUsers.map(function (followingUser) {
     return followingUser._id;
   });
+  // followingUsersIDs.push(this._id);
+
   return Image.find(
     { creatorID: { $in: followingUsersIDs } },
     function (err, posts) {
       callback(posts);
     }
-  );
+  )
+    .populate("author", "name avatar")
+    .skip(skip)
+    .limit(limit)
+    .sort("-createdAt");
 };
 module.exports = mongoose.model("User", userSchema);
