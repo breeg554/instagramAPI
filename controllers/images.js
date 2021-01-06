@@ -37,7 +37,14 @@ function create(req, res) {
   newImage.path = relPath;
   newImage.save(function (err, image) {
     if (err) res.status(400).json("Something went wrong");
-    res.status(201).json(image);
+    Image.populate(
+      image,
+      { path: "author", model: "User", select: "name avatar" },
+      function (err, image) {
+        if (err) return res.status(400).json("Something went wrong");
+        return res.status(201).json(image);
+      }
+    );
   });
 }
 module.exports.uploadImage = create;
@@ -67,7 +74,7 @@ function destroy(req, res) {
     try {
       fs.rmdirSync(remove, { recursive: true });
     } catch (err) {
-      console.error(`Error while deleting ${remove}.`);
+      res.status(400).json("Error while deleting");
     }
     res.status(200).json(image);
   });
@@ -84,10 +91,7 @@ function like(req, res, next) {
     );
 
     if (isUserLike > -1) {
-      const tmpLikes = image.likes.filter(
-        (user) => user._id.toString() !== req.userID.toString()
-      );
-      image.likes = tmpLikes;
+      image.likes.pull(req.userID);
     } else image.likes.push(req.userID);
     image.save();
 

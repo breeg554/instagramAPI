@@ -49,4 +49,5 @@ userSchema.methods.getFeed = function (limit = 0, skip = 0, callback) {
     .limit(limit)
     .sort("-createdAt");
 };
+
 module.exports = mongoose.model("User", userSchema);

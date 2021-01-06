@@ -2,6 +2,17 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const config = require("../config/db");
 const User = require("../models/user");
+const { handleUserResponse, userDataToSend } = require("../utils/utils");
+const POPULATE_OPTIONS = {
+  path: "images",
+  model: "Image",
+  options: { sort: { createdAt: -1 } },
+  populate: {
+    path: "author",
+    model: "User",
+    select: "name avatar",
+  },
+};
 
 async function register(req, res, next) {
   try {
@@ -35,7 +46,7 @@ module.exports.register = register;
 async function login(req, res, next) {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).populate("images");
+    const user = await User.findOne({ email }).populate(POPULATE_OPTIONS);
     if (!user) return res.status(404).json("User not found");
 
     const match = await bcrypt.compare(password, user.password);
@@ -48,15 +59,7 @@ async function login(req, res, next) {
     const token = jwt.sign({ data: payload }, config.jwt, { expiresIn: "1h" });
 
     const resData = {
-      user: {
-        id: user._id,
-        name: user.name,
-        avatar: user.avatar,
-        email,
-        images: user.images,
-        followingUsers: user.followingUsers,
-        followers: user.followers,
-      },
+      user: userDataToSend(user),
       token,
     };
 
@@ -70,20 +73,9 @@ module.exports.login = login;
 
 async function getData(req, res, next) {
   try {
-    User.findById(req.userID, (err, user) => {
-      if (err) return res.status(400).json("Something went wrong");
-
-      const resUser = {
-        id: user._id,
-        name: user.name,
-        avatar: user.avatar,
-        email: user.email,
-        images: user.images,
-        followingUsers: user.followingUsers,
-        followers: user.followers,
-      };
-      return res.status(200).json(resUser);
-    }).populate("images");
+    User.findById(req.userID)
+      .populate(POPULATE_OPTIONS)
+      .exec((err, user) => handleUserResponse(req, res, err, user));
   } catch (err) {
     console.log(err);
     res.status(400).json("Something went wrong");
@@ -94,29 +86,8 @@ module.exports.getUserData = getData;
 async function getUserByName(req, res, next) {
   try {
     User.findOne({ name: req.params.name })
-      .populate({
-        path: "images",
-        model: "Image",
-        populate: {
-          path: "author",
-          model: "User",
-          select: "name avatar",
-        },
-      })
-      .exec((err, user) => {
-        if (err) return res.status(400).json("Something went wrong");
-        if (!user) return res.status(404).json("User not found");
-
-        const resUser = {
-          id: user._id,
-          name: user.name,
-          avatar: user.avatar,
-          images: user.images,
-          followingUsers: user.followingUsers,
-          followers: user.followers,
-        };
-        return res.status(200).json(resUser);
-      });
+      .populate(POPULATE_OPTIONS)
+      .exec((err, user) => handleUserResponse(req, res, err, user));
   } catch (err) {
     console.log(err);
     res.status(400).json("Something went wrong");
@@ -159,7 +130,6 @@ module.exports.toggleFollowUser = follow;
 function getPosts(req, res, next) {
   User.findById(req.userID).exec(async function (err, user) {
     if (err) return res.status(400).json("Something went wrong");
-
     if (!user) return res.status(401).json("User not found");
 
     try {
