@@ -50,4 +50,14 @@ userSchema.methods.getFeed = function (limit = 0, skip = 0, callback) {
     .sort("-createdAt");
 };
 
+userSchema.methods.getFollowersIds = function (callback) {
+  return (followersUsersIDs = this.followers.map((follower) => {
+    return follower._id;
+  }));
+};
+userSchema.methods.getFollowingUsersIds = function (callback) {
+  return (followersUsersIDs = this.followingUsers.map((follower) => {
+    return follower._id;
+  }));
+};
 module.exports = mongoose.model("User", userSchema);

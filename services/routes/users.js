@@ -5,8 +5,11 @@ const verify = require("../verify-token");
 
 router.get("/", verify, users.getUserData);
 router.get("/:name", verify, users.getUserByName);
+router.get("/accounts/search", verify, users.searchUsersByName);
+router.get("/friends/posts", verify, users.getFollowedUsersPosts);
+router.get("/followers/:id", verify, users.getFollowers);
+router.get("/following/:id", verify, users.getFollowingUsers);
 router.post("/register", users.register);
 router.post("/login", users.login);
 router.post("/follow", verify, users.toggleFollowUser);
-router.get("/friends/posts", verify, users.getFollowedUsersPosts);
 module.exports = router;
