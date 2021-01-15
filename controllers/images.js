@@ -1,8 +1,9 @@
 const path = require("path");
 const Image = require("../models/image");
 const fs = require("fs");
+const ApiError = require("../utils/ApiError");
 
-async function get(req, res) {
+async function get(req, res, next) {
   const { id } = req.params;
 
   const limit = parseInt(req.query.limit || 0);
@@ -13,7 +14,7 @@ async function get(req, res) {
     .limit(limit)
     .sort("-createdAt")
     .exec(function (err, image) {
-      if (err) res.status(400).json("Something went wrong");
+      if (err) return next(new ApiError("Something went wrong", 400));
       res.status(200).json(image);
     });
 }
@@ -21,7 +22,7 @@ module.exports.getImages = get;
 
 async function getById(req, res) {
   await Image.findById(req.params.id, function (err, image) {
-    if (err) res.status(400).json("Something went wrong");
+    if (err) return next(new ApiError("Something went wrong", 400));
     res.status(200).json(image);
   });
 }
@@ -36,30 +37,31 @@ function create(req, res) {
   newImage.creatorID = req.userID;
   newImage.path = relPath;
   newImage.save(function (err, image) {
-    if (err) res.status(400).json("Something went wrong");
-    Image.populate(
-      image,
-      { path: "author", model: "User", select: "name avatar" },
-      function (err, image) {
-        if (err) return res.status(400).json("Something went wrong");
+    if (err) return next(new ApiError("Something went wrong", 400));
+    Image.findById(image._id)
+      .populate({
+        path: "author",
+        model: "User",
+        select: "name avatar",
+      })
+      .exec((err, image) => {
+        if (err) return next(new ApiError("Something went wrong", 400));
         return res.status(201).json(image);
-      }
-    );
+      });
   });
 }
 module.exports.uploadImage = create;
 
-function destroy(req, res) {
+function destroy(req, res, next) {
   Image.findById(req.params.id, function (err, image) {
-    if (err) return res.status(400).json("Something went wrong");
-
-    if (image === null) return res.status(404).json("Image doesnt exists");
+    if (err) return next(new ApiError("Something went wrong", 400));
+    if (!image) return next(new ApiError("Image doesnt exists", 404));
 
     if (req.userID.toString() !== image.creatorID.toString())
-      return res.status(401).json("Access denied");
+      return next(new ApiError("Access denied", 401));
 
     Image.deleteOne({ _id: image._id }, function (err, image) {
-      if (err) res.status(400).json("Something went wrong");
+      if (err) return next(new ApiError("Something went wrong", 400));
       return;
     });
 
@@ -74,7 +76,7 @@ function destroy(req, res) {
     try {
       fs.rmdirSync(remove, { recursive: true });
     } catch (err) {
-      res.status(400).json("Error while deleting");
+      return next(new ApiError("Error while deleting", 400));
     }
     res.status(200).json(image);
   });
@@ -83,8 +85,8 @@ module.exports.deleteImage = destroy;
 
 function like(req, res, next) {
   Image.findById(req.params.id, (err, image) => {
-    if (err) return res.status(400).json("Something went wrong");
-    if (image === null) return res.status(404).json("Image not found");
+    if (err) return next(new ApiError("Something went wrong", 400));
+    if (!image) return next(new ApiError("Image not found", 404));
 
     const isUserLike = image.likes.findIndex(
       (user) => user._id.toString() === req.userID.toString()
