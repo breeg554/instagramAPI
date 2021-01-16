@@ -19,9 +19,9 @@ function initialize() {
     const WebSockets = require("./web-sockets");
     const io = require("socket.io")(httpServer, {
       transports: ["polling"],
+      wsEngine: "ws",
       cors: {
         origin: "*",
-        methods: ["GET", "POST"],
       },
     });
 

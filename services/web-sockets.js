@@ -3,7 +3,7 @@ class WebSockets {
   connection = (client) => {
     console.log("connect");
     client.on("disconnect", () => {
-      console.log("user disconnect");
+      console.log("dissconet");
     });
 
     client.on("identity", (userId) => {
