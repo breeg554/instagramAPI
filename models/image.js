@@ -6,6 +6,7 @@ const imageSchema = new Schema(
     description: { type: String, default: "" },
     path: { type: String, required: true },
     creatorID: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+    publicID: { type: String, required: true },
     createdAt: {
       type: Date,
       default: Date.now,

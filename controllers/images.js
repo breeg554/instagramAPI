@@ -2,6 +2,7 @@ const path = require("path");
 const Image = require("../models/image");
 const fs = require("fs");
 const ApiError = require("../utils/ApiError");
+const cloudinary = require("../services/cloudinary");
 
 async function get(req, res, next) {
   const { id } = req.params;
@@ -29,16 +30,16 @@ async function getById(req, res) {
 }
 module.exports.getImageById = getById;
 
-function create(req, res) {
-  const remove = path.join(__dirname, "..", "uploads");
-
-  const relPath = req.file.path.replace(remove, "");
+function create(req, res, next) {
+  const { file } = req;
 
   const newImage = new Image(req.body);
   newImage.creatorID = req.userID;
-  newImage.path = relPath;
+  newImage.path = file.path;
+  newImage.publicID = file.filename.substring(file.filename.indexOf("/") + 1);
   newImage.save((err, image) => {
     if (err) return next(new ApiError("Something went wrong", 400));
+
     Image.findById(image._id)
       .populate({
         path: "author",
@@ -47,6 +48,7 @@ function create(req, res) {
       })
       .exec((err, image) => {
         if (err) return next(new ApiError("Something went wrong", 400));
+
         return res.status(201).json(image);
       });
   });
@@ -54,32 +56,42 @@ function create(req, res) {
 module.exports.uploadImage = create;
 
 function destroy(req, res, next) {
-  Image.findById(req.params.id, (err, image) => {
+  Image.findById(req.params.id, async (err, image) => {
     if (err) return next(new ApiError("Something went wrong", 400));
     if (!image) return next(new ApiError("Image doesnt exists", 404));
 
     if (req.userID.toString() !== image.creatorID.toString())
       return next(new ApiError("Access denied", 401));
 
-    Image.deleteOne({ _id: image._id }, function (err, image) {
-      if (err) return next(new ApiError("Something went wrong", 400));
-      return;
-    });
-
-    const lastIndex = image.path.lastIndexOf("\\");
-    const remove = path.join(
-      __dirname,
-      "..",
-      "uploads",
-      `${image.path.substring(0, lastIndex)}`
+    await cloudinary.uploader.destroy(
+      `instaApp/${image.publicID}`,
+      (err, result) => {
+        if (err) return next(new ApiError("Image doesnt exists", 404));
+        Image.deleteOne({ _id: image._id }, async (err) => {
+          if (err) return next(new ApiError("Something went wrong", 400));
+        });
+      }
     );
-
-    try {
-      fs.rmdirSync(remove, { recursive: true });
-    } catch (err) {
-      return next(new ApiError("Error while deleting", 400));
-    }
     res.status(200).json(image);
+
+    // console.log(image);
+    // cloudinary.uploader.destroy("sample", (error, result) => {
+    //   console.log(result, error);
+    // });
+    // const lastIndex = image.path.lastIndexOf("\\");
+    // const remove = path.join(
+    //   __dirname,
+    //   "..",
+    //   "uploads",
+    //   `${image.path.substring(0, lastIndex)}`
+    // );
+    // console.log(remove);
+    // try {
+    //   fs.rmdirSync(remove, { recursive: true });
+    // } catch (err) {
+    //   return next(new ApiError("Error while deleting", 400));
+    // }
+    // res.status(200).json(image);
   });
 }
 module.exports.deleteImage = destroy;
