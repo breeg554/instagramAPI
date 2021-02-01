@@ -12,8 +12,9 @@ async function get(req, res, next) {
   await Image.find({ creatorID: id })
     .skip(skip)
     .limit(limit)
+    .populate("author", "name avatar")
     .sort("-createdAt")
-    .exec(function (err, image) {
+    .exec((err, image) => {
       if (err) return next(new ApiError("Something went wrong", 400));
       res.status(200).json(image);
     });
@@ -21,7 +22,7 @@ async function get(req, res, next) {
 module.exports.getImages = get;
 
 async function getById(req, res) {
-  await Image.findById(req.params.id, function (err, image) {
+  await Image.findById(req.params.id, (err, image) => {
     if (err) return next(new ApiError("Something went wrong", 400));
     res.status(200).json(image);
   });
@@ -36,7 +37,7 @@ function create(req, res) {
   const newImage = new Image(req.body);
   newImage.creatorID = req.userID;
   newImage.path = relPath;
-  newImage.save(function (err, image) {
+  newImage.save((err, image) => {
     if (err) return next(new ApiError("Something went wrong", 400));
     Image.findById(image._id)
       .populate({
@@ -53,7 +54,7 @@ function create(req, res) {
 module.exports.uploadImage = create;
 
 function destroy(req, res, next) {
-  Image.findById(req.params.id, function (err, image) {
+  Image.findById(req.params.id, (err, image) => {
     if (err) return next(new ApiError("Something went wrong", 400));
     if (!image) return next(new ApiError("Image doesnt exists", 404));
 

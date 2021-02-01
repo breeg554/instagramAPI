@@ -6,6 +6,7 @@ const verify = require("../verify-token");
 
 router.get("/", verify, users.getUserData);
 router.get("/:name", verify, users.getUserByName);
+router.get("/basic/:id", verify, users.getBasicDataById);
 router.get("/accounts/search", verify, users.searchUsersByName);
 router.get("/friends/posts", verify, users.getFollowedUsersPosts);
 router.get("/followers/:id", verify, users.getFollowers);
@@ -15,5 +16,5 @@ router.post("/register", users.register);
 router.post("/login", users.login);
 router.post("/follow", verify, users.toggleFollowUser);
 router.post("/messages", verify, messages.create);
-// router.post("/", verify, uploadImage.single("file"), users.updateAvatar);
+
 module.exports = router;

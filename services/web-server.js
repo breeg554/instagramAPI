@@ -4,7 +4,7 @@ const morgan = require("morgan");
 const path = require("path");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-// const io = require("socket.io");
+
 const webServerConfig = require("../config/web-server");
 const routes = require("./routes/index");
 
@@ -29,7 +29,13 @@ function initialize() {
     global.io.on("connection", WebSockets.connection);
 
     app.use(morgan("combined"));
-    app.use(cors());
+
+    const corsOptions = {
+      origin: webServerConfig.origin,
+      optionsSuccessStatus: 200,
+    };
+
+    app.use(cors(corsOptions));
     app.use(bodyParser.json());
     app.use(
       "/api/uploads",
@@ -42,9 +48,9 @@ function initialize() {
       next(error);
     });
     app.use((error, req, res, next) => {
-      res
-        .status(error.status || 500)
-        .json({ error: { message: error.message } });
+      res.status(error.status || 500).json({
+        error: { status: error.status || 500, message: error.message },
+      });
     });
 
     httpServer
