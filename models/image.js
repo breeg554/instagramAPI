@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const imageSchema = new Schema(
   {
-    description: { type: String, default: "" },
+    description: { type: String, default: "", maxlength: 250 },
     path: { type: String, required: true },
     creatorID: { type: Schema.Types.ObjectId, required: true, ref: "User" },
     publicID: { type: String, required: true },

@@ -1,10 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const path = require("path");
 const multer = require("multer");
-const fs = require("fs");
-const Image = require("../../models/image");
 const verify = require("../verify-token");
+const config = require("../../config/cloudinary");
 const controller = require("../../controllers/images");
 const cloudinary = require("../cloudinary");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -13,7 +11,7 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "instaApp",
-    // upload_preset: "pupp2xcn",
+    upload_preset: config.api_preset,
     format: async (req, file) => {
       "jpg", "png";
     },
